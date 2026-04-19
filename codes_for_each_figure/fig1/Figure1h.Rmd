@@ -1,0 +1,301 @@
+---
+title: "figure1h"
+author: "MJY"
+date: "2024-09-11"
+output: html_document
+---
+
+Figure 1h
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# 1. Use bedtools to compute the number of H3K27ac peaks intersecting with each TAD region.
+
+# 2. Separate TAD regions based on whether they overlap with H3K27ac peaks.
+
+# 3. Use bedtools intersect to find the overlap between TAD regions with and without H3K27ac peaks.
+
+# 4. Use deeptools to generate matrices of ChIP-seq signal values (H3K27ac) for regions of interest, including TAD regions with and without H3K27ac peaks.
+
+# 5. Generates profile plots of ChIP-seq (H3K27ac) signals at regions of interest using plotProfile from deeptools.
+
+# 
+
+################################################################################ 
+
+\#' \## <br> \#' 1. Use bedtools to compute the number of H3K27ac peaks intersecting with each TAD region.
+
+```{bash eval=FALSE}
+
+conda create -n bedtools
+conda activate bedtools
+conda install -c bioconda bedtools
+
+cd /public/home/mjy/HCC/share/figure1h
+nohup bash 01.tad_h3k27ac_peak.sh 1>01.tad_h3k27ac_peak.log 2>&1 &
+
+cd /public/home/mjy/HCC/share/figure1h/01.count
+cat con_18w_tad_peak_counts.bed | head
+cat ccl4_18w_tad_peak_counts.bed | head
+
+```
+
+\#' “01.tad_h3k27ac_peak.sh” contains the following information
+
+```{bash eval=FALSE}
+
+#Usage:   bedtools intersect [OPTIONS] -a <bed/gff/vcf/bam> -b <bed/gff/vcf/bam> 
+#                                      -c  For each entry in A, report the number of overlaps with B.
+
+# Define the directory containing datum
+TAD_18w=/public/home/mjy/HCC/share/figure1h/00.bed/tad
+Peak_18w=/public/home/mjy/HCC/share/figure1h/00.bed/h3k27ac
+output=/public/home/mjy/HCC/share/figure1h/01.count
+
+mkdir -p ${output}
+
+# Start the intersection for the control group
+echo "bedtools intersect start!"
+bedtools intersect -a ${TAD_18w}/con_18w_merged.TAD.bed \
+				-b ${Peak_18w}/ctrl_18w_summits.bed \
+				-c \
+				> ${output}/con_18w_tad_peak_counts.bed
+echo "bedtools intersect finish!"
+
+wait
+
+# Start the intersection for the treated group
+echo "bedtools intersect start!"
+bedtools intersect -a ${TAD_18w}/ccl4_18w_merged.TAD.bed \
+				-b ${Peak_18w}/ccl4_18w_summits.bed \
+				-c \
+				>${output}/ccl4_18w_tad_peak_counts.bed
+echo "bedtools intersect finish!"
+
+```
+
+con_18w_tad_peak_counts.bed
+
+![](images/con_18w_tad_peak_counts.bed.png){width="510"}
+
+ccl4_18w_tad_peak_counts.bed
+
+![](images/ccl4_18w_tad_peak_counts.bed.png){width="513"}
+
+\#' \## <br> \#' 2. Separate TAD regions based on whether they overlap with H3K27ac peaks.
+
+```{bash eval=FALSE}
+
+cd ..
+nohup bash 02.select.sh 1>02.select.log 2>&1 &
+
+cd /public/home/mjy/HCC/share/figure1h/02.select
+for file in *.bed
+do
+  echo "Displaying content of $file:"
+  head "$file"
+  echo "--------------------------"
+done
+
+```
+
+\#' “02.select.sh” contains the following information
+
+```{bash eval=FALSE}
+
+# Define the directory containing data
+input=/public/home/mjy/HCC/share/figure1h/01.count
+output=/public/home/mjy/HCC/share/figure1h/02.select
+
+mkdir -p ${output}
+
+# Select TAD regions that have at least one overlapping H3K27ac peak for the control group and the treated group
+awk '!$4 == 0' ${input}/con_18w_tad_peak_counts.bed >  ${output}/con_18w_domain.bed
+wait
+awk '!$4 == 0' ${input}/ccl4_18w_tad_peak_counts.bed >  ${output}/ccl4_18w_domain.bed
+echo "finish!"
+
+# Select TAD regions that have zero overlapping H3K27ac peaks for the control group and the treated group
+awk '$4 == 0' ${input}/con_18w_tad_peak_counts.bed >  ${output}/con_18w_zero_domain.bed
+wait
+awk '$4 == 0' ${input}/ccl4_18w_tad_peak_counts.bed >  ${output}/ccl4_18w_zero_domain.bed
+echo "finish!"
+
+```
+
+con_18w_domain.bed & con_18w_zero_domain.bed
+
+![](images/con_18w.bed.png){width="233"}
+
+ccl4_18w_domain.bed & ccl4_18w_zero_domain.bed
+
+![](images/ccl4_18w.bed.png){width="234"}
+
+\#' \## <br> \#' 3. Use bedtools intersect to find the overlap between TAD regions with and without H3K27ac peaks.
+
+```{bash eval=FALSE}
+
+cd ..
+nohup bash 03.overlap.sh 1>03.overlap.log 2>&1 &
+
+cd /public/home/mjy/HCC/share/figure1h/03.overlap
+cat h3k27ac_18w_overlap.bed | head
+cat h3k27ac_18w_zero_overlap.bed | head
+
+```
+
+\#' “03.overlap.sh” contains the following information
+
+```{bash eval=FALSE}
+
+# Define the input where the input files are located
+input=/public/home/mjy/HCC/share/figure1h/02.select
+output=/public/home/mjy/HCC/share/figure1h/03.overlap
+
+mkdir -p ${output}
+
+# Use bedtools to find the intersection between TAD regions, either with or without H3K27ac peaks, in both the control group and the treated group.
+bedtools intersect -a ${input}/con_18w_domain.bed -b ${input}/ccl4_18w_domain.bed > ${output}/h3k27ac_18w_overlap.bed
+
+bedtools intersect -a ${input}/con_18w_zero_domain.bed -b ${input}/ccl4_18w_zero_domain.bed > ${output}/h3k27ac_18w_zero_overlap.bed
+
+```
+
+h3k27ac_18w_overlap.bed
+
+![](images/h3k27ac_18w_overlap.bed.png){width="501"}
+
+h3k27ac_18w_zero_overlap.bed
+
+![](images/h3k27ac_18w_zero_overlap.bed-01.png){width="516"}
+
+\#' \## <br> \#' 4. Use deeptools to generate matrices of ChIP-seq signal values (H3K27ac) for regions of interest, including TAD regions with and without H3K27ac peaks.
+
+```{bash eval=FALSE}
+
+cd ..
+conda create -n deeptools
+conda activate deeptools
+conda install -c bioconda deeptools
+nohup bash 04.compMat.sh 1>04.compMat.log 2>&1 &
+
+cd /public/home/mjy/HCC/share/figure1h/04.martix
+zcat h3k27ac_18w_overlap_matrix.gz | head
+zcat h3k27ac_18w_zero_overlap_matrix.gz | head
+
+```
+
+\#' “04.compMat.sh” contains the following information
+
+```{bash eval=FALSE}
+
+# usage: An example usage is:
+#   computeMatrix reference-point -S <biwig file(s)> -R <bed file> -a 3000 -b 3000
+
+# Define the paths for treated and control signal tracks, output directory, and input files
+ccl4_18w=/public/home/mjy/HCC/chip/bam/h3k27ac_bam/merge/ccl4_18w/signalTrack
+ctrl_18w=/public/home/mjy/HCC/chip/bam/h3k27ac_bam/merge/ctrl_18w/signalTrack
+input=/public/home/mjy/HCC/share/figure1h/03.overlap
+output=/public/home/mjy/HCC/share/figure1h/04.martix
+
+mkdir -p ${output}
+
+# Generate signal matrix for TAD regions with H3K27ac peak overlap (with overlap)
+computeMatrix reference-point  --referencePoint center \
+                               -p 24 \
+                               -bs 100000 \
+                               --skipZeros \
+                               -a 2000000 -b 2000000 \
+                               -R ${input}/h3k27ac_18w_overlap.bed \
+                               -S ${ctrl_18w}/ctrl_18w_FE.sorted.bw ${ccl4_18w}/ccl4_18w_FE.sorted.bw  \
+                               -o ${output}/h3k27ac_18w_overlap_matrix.gz 
+
+wait
+                              
+# Generate signal matrix for TAD regions without H3K27ac peak overlap (zero overlap)
+computeMatrix reference-point  --referencePoint center \
+                               -p 24 \
+                               -bs 100000 \
+                               --skipZeros \
+                               -a 2000000 -b 2000000 \
+                               -R ${input}/h3k27ac_18w_zero_overlap.bed \
+                               -S ${ctrl_18w}/ctrl_18w_FE.sorted.bw ${ccl4_18w}/ccl4_18w_FE.sorted.bw  \
+                               -o ${output}/h3k27ac_18w_zero_overlap_matrix.gz 
+                               
+```
+
+h3k27ac_18w_overlap_matrix.gz
+
+![](images/h3k27ac_18w_zero_overlap_matrix.gz.png)
+
+h3k27ac_18w_zero_overlap_matrix.gz
+
+![](images/h3k27ac_18w_overlap_matrix.gz.png)
+
+\#' \## <br> \#' 5. Generates profile plots of ChIP-seq (H3K27ac) signals at regions of interest using plotProfile from deeptools.
+
+```{bash eval=FALSE}
+
+cd ..
+nohup bash 05.profile.sh 1>05.profile.log 2>&1 &
+
+```
+
+```{bash eval=FALSE}
+
+# Define input and output directories
+input=/public/home/mjy/HCC/share/figure1h/04.martix
+output=/public/home/mjy/HCC/share/figure1h/05.profile
+
+mkdir -p ${output}
+
+# Plot the profile for TAD regions with H3K27ac peak overlap
+plotProfile -m ${input}/h3k27ac_18w_overlap_matrix.gz \
+            --outFileName ${output}/h3k27ac_18w_overlap.png \
+            --yMin 0.6 \
+            --yMax 1.0 \
+            --plotHeight 8 \
+            --plotWidth 8 \
+            --colors "#00BFC4" "#F8766D" \
+            --perGroup  \
+            --startLabel "" \
+            --endLabel "" \
+            --samplesLabel  "Con_18w" "HCC_18w"    \
+            --plotTitle "" \
+            --refPointLabel "TAD center" \
+            -T "h3k27ac_18w_overlap" 
+wait
+echo "h3k27ac_18w_zero_overlap finish!"
+
+# Plot the profile for TAD regions without H3K27ac peak overlap
+plotProfile -m ${input}/h3k27ac_18w_zero_overlap_matrix.gz \
+            --outFileName ${output}/h3k27ac_18w_zero_overlap.png \
+            --yMin 0.2 \
+            --yMax 0.6 \
+            --plotHeight 8 \
+            --plotWidth 8 \
+            --colors "#00BFC4" "#F8766D" \
+            --perGroup  \
+            --startLabel "" \
+            --endLabel "" \
+            --samplesLabel  "Con_18w" "HCC_18w"    \
+            --plotTitle "" \
+            --refPointLabel "TAD center" \
+            -T "h3k27ac_18w_zero_overlap" 
+wait
+echo "h3k27ac_18w_zero_overlap finish!"
+
+
+```
+
+h3k27ac_18w_overlap.png
+
+![](images/h3k27ac_18w_overlap.png){width="384"}
+
+h3k27ac_18w_zero_overlap.png
+
+![](images/h3k27ac_18w_zero_overlap.png){width="384"}

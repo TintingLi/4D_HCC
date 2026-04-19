@@ -1,0 +1,118 @@
+---
+title: "Genova_Saddle"
+author: "MJY"
+date: "2024-07-15"
+output: html_document
+---
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# 1. Use GENOVA to generate Aggregate TAD Analysis (ATA) plots to quantify the enrichment of chromatin contacts around TAD boundaries and assess domain insulation.
+
+# 
+
+################################################################################ 
+
+\#' \## <br> \#' 1. Use GENOVA to generate Aggregate TAD Analysis (ATA) plots to quantify the enrichment of chromatin contacts around TAD boundaries and assess domain insulation.
+
+```{r}
+
+library(GENOVA)
+library(ggplot2)
+library(patchwork)
+
+
+# 6w
+con_6w <- load_contacts(
+  signal_path = '/public/home/mjy/HCC/martix/con_6w/iced/40000/con_6w_40000_iced.matrix',
+  indices_path= '/public/home/mjy/HCC/martix/con_6w/raw/40000/con_6w_40000_abs.bed')
+
+ccl4_6w <- load_contacts(
+  signal_path = '/public/home/mjy/HCC/martix/ccl4_6w/iced/40000/ccl4_6w_40000_iced.matrix',
+  indices_path = '/public/home/mjy/HCC/martix/ccl4_6w/raw/40000/ccl4_6w_40000_abs.bed')
+
+
+
+con_6w_TAD <- read.table("/public/home/mjy/HCC/TAD_gene/bed/con_6w_merged.TAD.bed")
+ccl4_6w_TAD <- read.table("/public/home/mjy/HCC/TAD_gene/bed/ccl4_6w_merged.TAD.bed")
+
+ATA_6w <- ATA(list("con_6w" = con_6w,
+                   'ccl4_6w' = ccl4_6w),
+              bed = con_6w_TAD)
+
+P_6 <- visualise(ATA_6w,
+          colour_lim = c(0,500),
+          colour_lim_contrast = c(-150,150),
+          metric = "diff",
+          focus = 1) # which entry to use as comparison
+
+P_6
+
+# ggsave(filename = "/public/home/mjy/HCC/TAD/Fib_vs_con_6.png",
+#        plot = P_6, width = 6, height = 5, dpi = 1000)
+
+
+# 10w
+con_10w <- load_contacts(
+  signal_path = '/public/home/mjy/HCC/martix/con_10w/iced/40000/con_10w_40000_iced.matrix',
+  indices_path= '/public/home/mjy/HCC/martix/con_10w/raw/40000/con_10w_40000_abs.bed')
+
+ccl4_10w <- load_contacts(
+  signal_path = '/public/home/mjy/HCC/martix/ccl4_10w/iced/40000/ccl4_10w_40000_iced.matrix',
+  indices_path = '/public/home/mjy/HCC/martix/ccl4_10w/raw/40000/ccl4_10w_40000_abs.bed')
+
+
+con_10w_TAD <- read.table("/public/home/mjy/HCC/TAD_gene/bed/con_10w_merged.TAD.bed")
+ccl4_10w_TAD <- read.table("/public/home/mjy/HCC/TAD_gene/bed/ccl4_10w_merged.TAD.bed")
+
+ATA_10w <- ATA(list("con_10w" = con_10w,
+                   'ccl4_10w' = ccl4_10w),
+              bed = con_10w_TAD)
+
+P_10 <- visualise(ATA_10w,
+          colour_lim = c(0,500),
+          colour_lim_contrast = c(-150,150),
+          metric = "diff",
+          focus = 1) # which entry to use as comparison
+
+P_10
+
+# ggsave(filename = "/public/home/mjy/HCC/TAD/Cir_vs_con_10.png",
+#        plot = P_10, width = 6, height = 5, dpi = 1000)
+
+
+ 
+# 18w
+con_18w <- load_contacts(
+  signal_path = '/public/home/mjy/HCC/martix/con_18w/iced/40000/con_18w_40000_iced.matrix',
+  indices_path= '/public/home/mjy/HCC/martix/con_18w/raw/40000/con_18w_40000_abs.bed')
+
+ccl4_18w <- load_contacts(
+  signal_path = '/public/home/mjy/HCC/martix/ccl4_18w/iced/40000/ccl4_18w_40000_iced.matrix',
+  indices_path = '/public/home/mjy/HCC/martix/ccl4_18w/raw/40000/ccl4_18w_40000_abs.bed')
+
+
+con_18w_TAD <- read.table("/public/home/mjy/HCC/TAD_gene/bed/con_18w_merged.TAD.bed")
+ccl4_18w_TAD <- read.table("/public/home/mjy/HCC/TAD_gene/bed/ccl4_18w_merged.TAD.bed")
+
+ATA_18w <- ATA(list("con_18w" = con_18w,
+                   'ccl4_18w' = ccl4_18w),
+              bed = con_18w_TAD)
+
+P_18 <- visualise(ATA_18w,
+          colour_lim = c(0,500),
+          colour_lim_contrast = c(-150,150),
+          metric = "diff",
+          focus = 1) # which entry to use as comparison
+
+P_18
+
+# ggsave(filename = "/public/home/mjy/HCC/TAD/HCC_vs_con_18.png",
+#        plot = P_18, width = 6, height = 5, dpi = 1000)
+
+
+```

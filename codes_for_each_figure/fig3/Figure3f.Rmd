@@ -1,0 +1,249 @@
+---
+title: "Enhance martix"
+author: "MJY"
+date: "2026-04-17"
+output: html_document
+---
+
+
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# 1. Use HiC-Pro utilities to convert sparse Hi-C contact matrices into dense matrix format for downstream analysis.
+# 2. Use awk to remove row and column headers from dense Hi-C matrices and generate plain numeric matrices for downstream analysis.
+# 3. Use ScUnicorn to enhance Hi-C contact matrices and generate high-resolution interaction maps for downstream analysis.
+# 4. Use Python to visualize enhanced Hi-C contact matrices and generate heatmaps for specific genomic regions.
+# 
+
+################################################################################ 
+
+\#' \## <br> \#' 1. Use HiC-Pro utilities to convert sparse Hi-C contact matrices into dense matrix format for downstream analysis.
+
+
+```{python eval=FALSE}
+
+tad=/public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn
+input=/public/home/mjy/HCC/F1/HiC/matrix
+output=${tad}/01.DenseMatrix_iced
+sample=(F1_F_CON_G1 F1_F_CON_G2)
+soft=/home/WJlab/soft/HiC-Pro_3.1.0/bin/utils
+
+for i in "${sample[@]}"
+do
+        date; echo
+        echo "${i}_40000.iced.matrix begins converting to dense matrix."
+        echo
+
+        # Create output directory
+        output_dir="${output}/${i}"
+        mkdir -p "${output_dir}"
+    
+        # Enter the output directory
+        cd "${output_dir}" || exit  # Exit if the directory does not exist or cannot be accessed
+
+        # Run sparseToDense.py in the output directory
+        python3 "${soft}/sparseToDense.py" "${input}/F1_F_CON/iced/40000/${i}_40000_iced.matrix" \
+                                        -b "${input}/F1_F_CON/raw/40000/${i}_40000_abs.bed" \
+                                        --perchr -i \
+                                        -o "${i}_denseMatrix" > "${output}/${i}_40k.sparsetoDense.log" 2>&1
+
+        # Return to the original directory
+        cd - || exit
+
+        echo
+        date
+        echo "${i} finished."
+        echo
+
+        # Ensure returning to the initial directory after each iteration
+done
+
+date
+echo "All done."
+
+
+
+```
+
+
+\#' \## <br> \#' 2. Use awk to remove row and column headers from dense Hi-C matrices and generate plain numeric matrices for downstream analysis.
+
+
+```{bash eval=FALSE}
+
+# Process sample F1_F_CON_G1
+
+# Use awk to remove the first row (column headers) and the first column (row names)
+# Keep only the numeric matrix values for downstream analysis
+
+awk 'NR>1{
+    for(i=2;i<=NF;i++){
+        printf $i" "
+    }
+    printf "\n"
+}' /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/01.DenseMatrix_iced/F1_F_CON_G1/chrX_F1_F_CON_G1_denseMatrix \
+> /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/01.DenseMatrix_iced/F1_F_CON_G1/chrX_F1_F_CON_G1_denseMatrix.unicorn.txt
+
+
+# Process sample F1_F_CON_G2
+
+# Use awk to remove the first row (column headers) and the first column (row names)
+# Keep only the numeric matrix values for downstream analysis
+
+awk 'NR>1{
+    for(i=2;i<=NF;i++){
+        printf $i" "
+    }
+    printf "\n"
+}' /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/01.DenseMatrix_iced/F1_F_CON_G2/chrX_F1_F_CON_G2_denseMatrix \
+> /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/01.DenseMatrix_iced/F1_F_CON_G2/chrX_F1_F_CON_G2_denseMatrix.unicorn.txt
+
+```
+
+
+\#' \## <br> \#' 3. Use ScUnicorn to enhance Hi-C contact matrices and generate high-resolution interaction maps for downstream analysis.
+
+```{python eval=FALSE}
+
+# Process sample F1_F_CON_G1
+
+# Run ScUnicorn model to enhance Hi-C matrix resolution
+# Input: dense matrix without headers
+# Output: enhanced Hi-C matrix and visualization image
+
+python3 /public/home/mjy/soft/Unicorn/Unicorn-main/ScUnicorn/scripts/generate_hr.py \
+    --model_path /public/home/mjy/soft/Unicorn/Unicorn-main/ScUnicorn/checkpoint/scunicorn_model.pytorch \
+    --data_path /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/01.DenseMatrix_iced/F1_F_CON_G1/chrX_F1_F_CON_G1_denseMatrix.unicorn.txt \
+    --output_image_path /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/chrX_F1_F_CON_G1_denseMatrix.unicorn.txt.png \
+    --output_hic_path /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/chrX_F1_F_CON_G1_denseMatrix.unicorn.40kb.txt
+
+
+# Process sample F1_F_CON_G2
+
+# Run ScUnicorn model to enhance Hi-C matrix resolution
+# Input: dense matrix without headers
+# Output: enhanced Hi-C matrix and visualization image
+
+python3 /public/home/mjy/soft/Unicorn/Unicorn-main/ScUnicorn/scripts/generate_hr.py \
+    --model_path /public/home/mjy/soft/Unicorn/Unicorn-main/ScUnicorn/checkpoint/scunicorn_model.pytorch \
+    --data_path /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/01.DenseMatrix_iced/F1_F_CON_G2/chrX_F1_F_CON_G2_denseMatrix.unicorn.txt \
+    --output_image_path /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/chrX_F1_F_CON_G2_denseMatrix.unicorn.txt.png \
+    --output_hic_path /public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/chrX_F1_F_CON_G2_denseMatrix.unicorn.40kb.txt
+
+
+```
+
+\#' \## <br> \#' 4. Use Python to visualize enhanced Hi-C contact matrices and generate heatmaps for specific genomic regions.
+
+```{python eval=FALSE}
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Input file path (Unicorn-enhanced Hi-C matrix)
+file_path = "/public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/chrX_F1_F_CON_G2_denseMatrix.unicorn.40kb.txt"
+
+print("Loading matrix...")
+m = np.loadtxt(file_path)
+
+# Print matrix dimensions
+print("Matrix shape:", m.shape)
+
+# =========================
+# Resolution setting (40 kb)
+# =========================
+bin_size = 40000
+
+# Define genomic region (bp)
+start = 75_000_000
+end   = 95_000_000
+
+# Convert genomic coordinates to bin indices
+start_bin = start // bin_size
+end_bin   = end   // bin_size
+
+print("Bin range:", start_bin, end_bin)
+
+# Extract submatrix corresponding to the region
+sub = m[start_bin:end_bin, start_bin:end_bin]
+
+# Log transformation for visualization
+sub_log = np.log1p(sub)
+
+# =========================
+# Plot heatmap (Mb scale)
+# =========================
+extent = [start/1e6, end/1e6, start/1e6, end/1e6]
+
+plt.figure(figsize=(6,6))
+plt.imshow(sub_log, cmap="Reds", origin="lower", extent=extent)
+plt.colorbar(label="log1p(contact count)")
+plt.xlabel("Mb")
+plt.ylabel("Mb")
+plt.title("PWK chrX 75–95Mb (40kb, Unicorn)")
+
+# Save figure
+plt.savefig("/public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/G2_chrX_75_95Mb_40kb_unicorn.png", dpi=3000)
+plt.close()
+
+print("✅ chrX_75_95Mb_40kb_unicorn.png saved")
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Input file path (Unicorn-enhanced Hi-C matrix)
+file_path = "/public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/chrX_F1_F_CON_G1_denseMatrix.unicorn.40kb.txt"
+
+print("Loading matrix...")
+m = np.loadtxt(file_path)
+
+# Print matrix dimensions
+print("Matrix shape:", m.shape)
+
+# =========================
+# Resolution setting (40 kb)
+# =========================
+bin_size = 40000
+
+# Define genomic region (bp)
+start = 75_000_000
+end   = 95_000_000
+
+# Convert genomic coordinates to bin indices
+start_bin = start // bin_size
+end_bin   = end   // bin_size
+
+print("Bin range:", start_bin, end_bin)
+
+# Extract submatrix corresponding to the region
+sub = m[start_bin:end_bin, start_bin:end_bin]
+
+# Log transformation for visualization
+sub_log = np.log1p(sub)
+
+# =========================
+# Plot heatmap (Mb scale)
+# =========================
+extent = [start/1e6, end/1e6, start/1e6, end/1e6]
+
+plt.figure(figsize=(6,6))
+plt.imshow(sub_log, cmap="Reds", origin="lower", extent=extent)
+plt.colorbar(label="log1p(contact count)")
+plt.xlabel("Mb")
+plt.ylabel("Mb")
+plt.title("C57 chrX 75–95Mb (40kb, Unicorn)")
+
+# Save figure
+plt.savefig("/public/home/mjy/HCC/F1/HiC/F1_allvaildpairs/Unicorn/02.unicorn_enhance_iced/G1_chrX_75_95Mb_40kb_unicorn.png", dpi=3000)
+plt.close()
+
+print("✅ chrX_75_95Mb_40kb_unicorn.png saved")
+
+
+```
+

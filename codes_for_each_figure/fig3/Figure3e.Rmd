@@ -1,0 +1,77 @@
+
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# Use GENOVA to generate Aggregate TAD Analysis (ATA) plots to quantify the enrichment of chromatin contacts around TAD boundaries and assess domain insulation.
+
+# 
+
+################################################################################ 
+
+```{r}
+
+suppressPackageStartupMessages(library(GENOVA))
+suppressPackageStartupMessages(library(rtracklayer))
+
+F_CON_C57 <- load_contacts(
+signal_path = '/public/home/mjy/HCC/F1/HiC/matrix/F1_F_CON/iced/40000/F1_F_CON_G1_40000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/F1/HiC/matrix/F1_F_CON/raw/40000/F1_F_CON_G1_40000_abs.bed',
+sample_name = "F_CON_C57"
+)
+
+F_CON_PWK <- load_contacts(
+signal_path = '/public/home/mjy/HCC/F1/HiC/matrix/F1_F_CON/iced/40000/F1_F_CON_G2_40000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/F1/HiC/matrix/F1_F_CON/raw/40000/F1_F_CON_G2_40000_abs.bed',
+sample_name = "F_CON_PWK"
+)
+
+F_CON_TAD_C57 <-  import(
+  "/public/home/mjy/HCC/F1/HiC/06.TAD/02.TAD/F1_F_CON/F1_F_CON_40k_C57_fdr_domains_suboundary.bed"
+)
+
+F_CON_TAD_PWK <-  import(
+  "/public/home/mjy/HCC/F1/HiC/06.TAD/02.TAD/F1_F_CON/F1_F_CON_40k_PWK_fdr_domains_suboundary.bed"
+)
+
+tads_c57_df <- as.data.frame(F_CON_TAD_C57)[, c("seqnames", "start", "end")]
+tads_pwk_df <- as.data.frame(F_CON_TAD_PWK)[, c("seqnames", "start", "end")]
+
+tads_c57_df_chrX <- tads_c57_df[tads_c57_df$seqnames == "chrX", ]
+tads_pwk_df_chrX <- tads_pwk_df[tads_pwk_df$seqnames == "chrX", ]
+
+tads_chrX_merged <- unique(
+  rbind(
+    tads_c57_df[tads_c57_df$seqnames == "chrX", ],
+    tads_pwk_df[tads_pwk_df$seqnames == "chrX", ]
+  )
+)
+
+
+
+F_CON_C57calls <- ATA(list("F_CON_C57" = F_CON_C57,
+                      'F_CON_PWK' = F_CON_PWK),
+                      bed = tads_chrX_merged)
+
+
+    
+    # pdf(
+    #   file.path("/public/home/mjy/HCC/F1/HiC/06.TAD/03.GENOVA/chrX:80-100M/F1_F_CON_chrX_ATA_diff.pdf"),
+    #   width = 6,
+    #   height = 6
+    # )
+    # 
+
+  visualise(F_CON_C57calls,
+            colour_lim = c(0,500),
+            colour_lim_contrast = c(-15,15),
+            metric = "diff",
+            focus = 1) # which entry to use as comparison
+    
+    # dev.off()
+
+
+```

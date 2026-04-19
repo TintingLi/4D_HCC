@@ -1,0 +1,201 @@
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# 1. Visualize Hi-C contact maps of ChrX in Normal people across polyploid samples
+# 2. Visualize Hi-C contact maps of ChrX in HCC patient polyploid samples
+# 3. Differential Hi-C analysis of ChrX between normal and HCC samples
+
+# 
+
+################################################################################ 
+
+#' ## 1. Visualize Hi-C contact maps in Normal people across polyploid samples
+
+```{r}
+
+# Load GENOVA package
+library(GENOVA)
+
+# Load Hi-C contact matrices for different ploidy levels
+N3_2n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/N3_2_N7_8/hicpro-output/hic_results/matrix/N3_2n/iced/500000/N3_2n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/N3_2_N7_8/hicpro-output/hic_results/matrix/N3_2n/raw/500000/N3_2n_500000_abs.bed',
+sample_name = "N3_2n")
+
+N3_4n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/N3_4n/hicpro-output/hic_results/matrix/N3_4n/iced/500000/N3_4n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/N3_4n/hicpro-output/hic_results/matrix/N3_4n/raw/500000/N3_4n_500000_abs.bed',
+sample_name = "N3_4n")
+
+N3_8n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/N3_8n/hicpro-output/hic_results/matrix/N3_8n/iced/500000/N3_8n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/N3_8n/hicpro-output/hic_results/matrix/N3_8n/raw/500000/N3_8n_500000_abs.bed',
+sample_name = "N3_8n")
+
+# =========================
+# Plot individual Hi-C contact maps
+# =========================
+
+# Plot 2n sample
+print("2n N3(Normal)")
+hic_matrixplot(
+N3_2n,
+chrom = "chrX", start = 0, end = 155270560,
+cut.off = 2000 )
+
+
+
+# Plot 4n sample
+print("4n N3(Normal)")
+hic_matrixplot(
+N3_4n,
+chrom = "chrX", start = 0, end = 155270560,
+cut.off = 2000 )
+
+
+# Plot 8n sample
+print("8n N3(Normal)")
+hic_matrixplot(
+N3_8n,
+chrom = "chrX", start = 0, end = 155270560,
+cut.off = 2000 )
+
+# =========================
+# Plot differential Hi-C maps (exp2 - exp1)
+# =========================
+
+# 4n vs 2n
+print("4n vs 2n N3(Normal)")
+hic_matrixplot(exp1 = N3_4n,
+              exp2 = N3_2n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560, # upper limit of contacts
+              cut.off = 1000)
+
+
+# 8n vs 2n
+print("8n vs 2n N3(Normal)")
+hic_matrixplot(exp1 = N3_8n,
+              exp2 = N3_2n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560, # upper limit of contacts
+              cut.off = 1000)
+
+# 8n vs 4n
+print("8n vs 4n N3(Normal)")
+hic_matrixplot(exp1 = N3_8n,
+              exp2 = N3_4n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560, # upper limit of contacts
+              cut.off = 1000)
+
+
+
+```
+
+#' ## 2. Visualize Hi-C contact maps in HCC patient polyploid samples
+
+```{r}
+
+# Load GENOVA package
+library(GENOVA)
+
+# Load Hi-C contact matrices for HCC patient with different ploidy levels
+p13_2n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_2n/hicpro-output/hic_results/matrix/P13_2n/iced/500000/P13_2n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_2n/hicpro-output/hic_results/matrix/P13_2n/raw/500000/P13_2n_500000_abs.bed',
+sample_name = "p13_2n")
+
+p13_4n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_4n/hicpro-output/hic_results/matrix/P13_4n/iced/500000/P13_4n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_4n/hicpro-output/hic_results/matrix/P13_4n/raw/500000/P13_4n_500000_abs.bed',
+sample_name = "p13_4n")
+
+p13_8n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_8n/hicpro-output/hic_results/matrix/P13_8n/iced/500000/P13_8n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_8n/hicpro-output/hic_results/matrix/P13_8n/raw/500000/P13_8n_500000_abs.bed',
+sample_name = "p13_8n")
+
+# =========================
+# Plot individual Hi-C contact maps
+# =========================
+
+# Plot 2n sample
+print("2n P13 (HCC)")
+hic_matrixplot(
+p13_2n,
+chrom = "chrX", start = 0, end = 155270560,
+cut.off = 2000)
+
+# Plot 4n sample
+print("4n P13 (HCC)")
+hic_matrixplot(
+p13_4n,
+chrom = "chrX", start = 0, end = 155270560,
+cut.off = 2000 )
+
+# Plot 8n sample
+print("8n P13 (HCC)")
+hic_matrixplot(
+p13_8n,
+chrom = "chrX", start = 0, end = 155270560,
+cut.off = 2000 )
+
+```
+
+#' ## 3. Differential Hi-C analysis of ChrX between normal and HCC samples
+
+```{r}
+
+# =========================
+# Differential Hi-C maps (Normal vs HCC)
+# =========================
+
+# 2n comparison: N3 (normal) vs P13 (HCC)
+print("2n comparison: N3 (normal) vs P13 (HCC)")
+hic_matrixplot(exp1 = N3_2n,
+              exp2 = p13_2n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560,
+              cut.off = 1000)
+
+
+
+# 4n comparison: N3 (normal) vs P13 (HCC)
+print("4n comparison: N3 (normal) vs P13 (HCC)")
+hic_matrixplot(exp1 = N3_4n,
+              exp2 = p13_4n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560, # upper limit of contacts
+              cut.off = 1000)
+
+
+
+# 8n comparison: N3 (normal) vs P13 (HCC)
+print("8n comparison: N3 (normal) vs P13 (HCC)")
+hic_matrixplot(exp1 = N3_8n,
+              exp2 = p13_8n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560, # upper limit of contacts
+              cut.off = 1000)
+
+
+
+```
+

@@ -1,0 +1,71 @@
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# Visualize Hi-C contact maps of ChrX in HCC patient polyploid samples
+
+# 
+
+################################################################################ 
+
+```{r}
+
+# Load GENOVA package
+library(GENOVA)
+
+# Load Hi-C contact matrices for HCC patient with different ploidy levels
+p13_2n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_2n/hicpro-output/hic_results/matrix/P13_2n/iced/500000/P13_2n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_2n/hicpro-output/hic_results/matrix/P13_2n/raw/500000/P13_2n_500000_abs.bed',
+sample_name = "p13_2n")
+
+p13_4n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_4n/hicpro-output/hic_results/matrix/P13_4n/iced/500000/P13_4n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_4n/hicpro-output/hic_results/matrix/P13_4n/raw/500000/P13_4n_500000_abs.bed',
+sample_name = "p13_4n")
+
+p13_8n <- load_contacts(
+signal_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_8n/hicpro-output/hic_results/matrix/P13_8n/iced/500000/P13_8n_500000_iced.matrix',
+indices_path = '/public/home/mjy/HCC/Hi-C/polyploid/250508_P13_N3_N7_20M/P13_8n/hicpro-output/hic_results/matrix/P13_8n/raw/500000/P13_8n_500000_abs.bed',
+sample_name = "p13_8n")
+
+# =========================
+# Plot individual Hi-C contact maps
+# =========================
+
+# 4n vs 2n P13 (HCC)
+print("4n vs 2n P13 (HCC)")
+hic_matrixplot(exp1 = p13_4n,
+              exp2 = p13_2n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560)
+
+
+# 8n vs 2n P13 (HCC)
+print("8n vs 2n P13 (HCC)")
+hic_matrixplot(exp1 = p13_8n,
+              exp2 = p13_2n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560, # upper limit of contacts
+              cut.off = 1000)
+
+
+# 8n vs 4n P13 (HCC)
+print("8n vs 4n P13 (HCC)")
+hic_matrixplot(exp1 = p13_8n,
+              exp2 = p13_4n,
+              coplot = 'diff',
+              chrom = 'chrX',
+              start = 0,
+              end = 155270560, # upper limit of contacts
+              cut.off = 1000)
+
+
+
+```

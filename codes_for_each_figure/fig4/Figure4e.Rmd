@@ -1,0 +1,89 @@
+---
+title: "cancer type"
+author: "MJY"
+date: "2025-09-08"
+output: html_document
+---
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# Use ggplot2 to visualize and compare ranking differences between male and female across cancer types.
+
+# 
+
+################################################################################ 
+
+```{r}
+# Load required libraries
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(forcats))
+suppressPackageStartupMessages(library(ggtext))
+
+# Create input data frame (cancer types with male and female ranks)
+df <- data.frame(
+  Cancer = c("LIHC","LUSC","SARC","KICH","HNSC","THCA","PCPG","BLCA",
+             "LUAD","CHOL","ESCA","KIRC","PAAD","READ","BRCA","KIRP",
+             "COAD","STAD"),
+  Male   = c(2,4,6,3,8,8,8,10,6,4,15,10,9,14,16,18,19,21),
+  Female = c(1,4,3,7,3,3,4,4,12,15,8,18,20,17,19,20,23,21)
+)
+
+# Convert data to long format
+df_long <- df %>%
+  pivot_longer(cols = c(Male, Female),
+               names_to = "Sex",
+               values_to = "Rank")
+
+# Calculate the best (lowest) rank for each cancer type
+df_min <- df_long %>%
+  group_by(Cancer) %>%
+  summarise(best_rank = min(Rank))
+
+# Identify the top-ranked cancer type overall
+top_cancer <- df_min %>%
+  slice_min(best_rank, n = 1) %>%
+  pull(Cancer)
+
+# Reorder cancer types based on best rank (higher rank displayed on top)
+df_long <- df_long %>%
+  left_join(df_min, by = "Cancer") %>%
+  mutate(Cancer = fct_reorder(Cancer, best_rank, .desc = TRUE))
+
+# Customize y-axis labels (highlight top cancer in red and bold)
+y_labels <- levels(df_long$Cancer)
+
+# Create plot
+p <- ggplot(df_long, aes(x = Cancer, y = Rank, color = Sex)) +
+  geom_point(size = 6, alpha = 0.8) +
+  geom_line(aes(group = Cancer), color = "grey10", linewidth = 2) +
+  scale_color_manual(values = c("Male" = "#1f78b4", "Female" = "#e31a1c")) +
+  theme_minimal(base_size = 14) +
+  coord_flip() +
+  labs(title = "Male vs Female Rank in Cancer Types",
+       y = "Rank", x = "Cancer Type") +
+  scale_x_discrete(labels = y_labels) +
+  theme(
+    axis.text.y = element_markdown(),  # Enable HTML-style labels
+    panel.grid.major = element_line(color = "grey70", linetype = "solid"),  # Major grid lines
+    panel.grid.minor = element_line(color = "grey70", linetype = "solid")   # Minor grid lines
+  )
+
+p
+
+# Save the plot as a high-resolution image
+# ggsave(
+#   filename = "F:/WJlab/HCC/TAD_and_Rank/RANK_ggplot.png",
+#   plot = p,
+#   width = 8, height = 5, dpi = 1000
+# )
+
+
+```
+
+

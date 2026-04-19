@@ -1,0 +1,427 @@
+---
+title: "Method of compartment"
+author: "MJY"
+date: "2026-04-17"
+output: html_document
+---
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# 1. Identify A/B compartments using multiple methods
+# 2. Compare A compartments between methods and visualize overlap
+# 3. Compare B compartments between methods and visualize overlap
+
+# 
+
+################################################################################ 
+
+#' ## sample ccl4 18w
+#' ## 1. Identify A/B compartments using multiple methods
+
+```{r}
+# Load required libraries
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(eulerr))
+
+# =========================
+# Load HiCExplorer compartment results
+# =========================
+
+hicex_files <-"F:/share/results/compartment/hicexplore/ccl4_18w_hicex_final.bedgraph"
+hicex <- fread(hicex_files, header = TRUE, stringsAsFactors = FALSE)
+
+# Remove rows containing zero values
+hicex <-hicex %>%
+  filter(rowSums(. == 0) == 0)
+
+# Create unique region identifier (chr:start:end)
+hicex$region_id <- apply(hicex, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+
+
+# =========================
+# Load HiTC compartment results
+# =========================
+
+hitc_files <-"F:/share/results/compartment/hitc/ccl4_18w_pca.bedgraph"
+hitc <- fread(hitc_files, header = TRUE, stringsAsFactors = FALSE)
+
+# Remove rows containing zero values
+hitc <-hitc %>%
+  filter(rowSums(. == 0) == 0)
+
+# Define a function to classify PC1 score into A/B compartments
+classify_score <- function(score) {
+  if (!is.na(score)) {
+    if (score > 0) {
+      return("A")
+    } else {
+      return("B")
+    }
+  } else {
+    return(NA)  # Keep NA values
+  }
+}
+
+# Apply classification function to score column
+hitc$Compartment <- sapply(hitc$score, classify_score)
+
+# Create unique region identifier
+hitc$region_id <- apply(hitc, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+
+
+# =========================
+# Load bin reference file
+# =========================
+
+# Read bin_200000_PC1.xlsx file to obtain all genomic regions
+bin_file <- "F:/share/results/compartment/bedgraph/bin_200000_PC1.xlsx"
+bins <- read_excel(bin_file)
+
+# Create unique region identifier (chr:start:end)
+bins$region_id <- apply(bins, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+
+
+# =========================
+# Align compartment data across methods
+# =========================
+
+# Define a function to align and rename compartment data
+align_and_rename <- function(bins, data, name) {
+  aligned_data <- merge(bins, data, by = "region_id", all.x = TRUE)
+  aligned_data <- aligned_data[, c("region_id", "Compartment")]
+  colnames(aligned_data)[colnames(aligned_data) == "Compartment"] <- name
+  return(aligned_data)
+}
+
+# Align data from different methods
+hitc_aligned_data <- align_and_rename(bins, hitc, "hitc")
+hicex_aligned_data <- align_and_rename(bins, hicex, "hicex")
+
+# Merge all aligned datasets
+aligned_data <- Reduce(function(x, y) merge(x, y, by = "region_id", all.x = TRUE), 
+                       list(hitc_aligned_data, hicex_aligned_data))
+
+# Remove rows containing NA values
+aligned_data <- aligned_data[complete.cases(aligned_data), ]
+
+
+# =========================
+# Extract A/B compartments for each method
+# =========================
+
+# Define method names
+methods <- c("hitc", "hicex")
+
+# Extract indices of A compartments
+compartment_a <- lapply(methods, function(method) which(aligned_data[[method]] == "A"))
+
+# Extract indices of B compartments
+compartment_b <- lapply(methods, function(method) which(aligned_data[[method]] == "B"))
+
+# Assign names to output lists
+names(compartment_a) <- methods
+names(compartment_b) <- methods
+
+```
+
+#' ## 2. Identify A/B compartments using multiple methods
+
+```{r}
+
+# =========================
+# Define compartment sets
+# =========================
+
+# Extract A compartments from different methods
+A <- compartment_a$hitc
+B <- compartment_a$hicex
+
+
+# =========================
+# Calculate overlap statistics
+# =========================
+
+# Define a function to count unique and overlapping regions
+count_region <- function(set1, set2) {
+  list(
+    A_only = length(setdiff(set1, set2)),
+    B_only = length(setdiff(set2, set1)),
+    A_B_only = length(intersect(set1, set2))
+  )
+}
+
+# Compute region counts
+region_counts <- count_region(A, B)
+
+# Print results
+print(region_counts)
+
+
+# =========================
+# Visualize overlap using Euler diagram
+# =========================
+
+print("ccl4 18w compartment A")
+plot(euler(compartment_a),
+     fills = list(fill=c("#008080", "#ffbb44"),
+                  alpha=0.8),
+     quantities = TRUE,
+     legend = list(labels=c("HiTC", "HiCExplorer"),
+                   cex=1.2))
+
+
+```
+
+#' ## 3. Compare B compartments between methods and visualize overlap
+
+```{r}
+# =========================
+# Define compartment sets
+# =========================
+
+# Extract B compartments from different methods
+A <- compartment_b$hitc
+B <- compartment_b$hicex
+
+
+# =========================
+# Calculate overlap statistics
+# =========================
+
+# Define a function to count unique and overlapping regions
+count_region <- function(set1, set2) {
+  list(
+    A_only = length(setdiff(set1, set2)),
+    B_only = length(setdiff(set2, set1)),
+    A_B_only = length(intersect(set1, set2))
+  )
+}
+
+# Compute region counts
+region_counts <- count_region(A, B)
+
+# Print results
+print(region_counts)
+
+
+# =========================
+# Visualize overlap using Euler diagram
+# =========================
+
+
+# Basic Euler plot
+print("ccl4 18w compartment B")
+plot(euler(compartment_b),
+     fills = list(fill=c("#008080", "#ffbb44"),
+                  alpha=0.8),
+     quantities = TRUE,
+     legend = list(labels=c("HiTC", "HiCExplorer"),
+                   cex=1.2))
+```
+
+#' ## sample con 18w
+#' ## 1. Identify A/B compartments using multiple methods
+
+```{r}
+# =========================
+# Load HiCExplorer compartment results
+# =========================
+
+hicex_files <-"F:/share/results/compartment/hicexplore/con_18w_hicex_final.bedgraph"
+hicex <- fread(hicex_files, header = TRUE, stringsAsFactors = FALSE)
+
+# Remove rows containing zero values
+hicex <-hicex %>%
+  filter(rowSums(. == 0) == 0)
+
+# Create unique region identifier (chr:start:end)
+hicex$region_id <- apply(hicex, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+
+
+# =========================
+# Load HiTC compartment results
+# =========================
+
+hitc_files <-"F:/share/results/compartment/hitc/con_18w_pca.bedgraph"
+hitc <- fread(hitc_files, header = TRUE, stringsAsFactors = FALSE)
+
+# Remove rows containing zero values
+hitc <-hitc %>%
+  filter(rowSums(. == 0) == 0)
+
+# Define a function to classify PC1 score into A/B compartments
+classify_score <- function(score) {
+  if (!is.na(score)) {
+    if (score > 0) {
+      return("A")
+    } else {
+      return("B")
+    }
+  } else {
+    return(NA)  # Keep NA values
+  }
+}
+
+# Apply classification function to score column
+hitc$Compartment <- sapply(hitc$score, classify_score)
+
+# Create unique region identifier
+hitc$region_id <- apply(hitc, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+
+
+# =========================
+# Load bin reference file
+# =========================
+
+# Read bin_200000_PC1.xlsx file to obtain all genomic regions
+bin_file <- "F:/share/results/compartment/bedgraph/bin_200000_PC1.xlsx"
+bins <- read_excel(bin_file)
+
+# Create unique region identifier (chr:start:end)
+bins$region_id <- apply(bins, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+
+
+# =========================
+# Align compartment data across methods
+# =========================
+
+# Define a function to align and rename compartment data
+align_and_rename <- function(bins, data, name) {
+  aligned_data <- merge(bins, data, by = "region_id", all.x = TRUE)
+  aligned_data <- aligned_data[, c("region_id", "Compartment")]
+  colnames(aligned_data)[colnames(aligned_data) == "Compartment"] <- name
+  return(aligned_data)
+}
+
+# Align data from different methods
+hitc_aligned_data <- align_and_rename(bins, hitc, "hitc")
+hicex_aligned_data <- align_and_rename(bins, hicex, "hicex")
+
+# Merge all aligned datasets
+aligned_data <- Reduce(function(x, y) merge(x, y, by = "region_id", all.x = TRUE), 
+                       list(hitc_aligned_data, hicex_aligned_data))
+
+# Remove rows containing NA values
+aligned_data <- aligned_data[complete.cases(aligned_data), ]
+
+
+# =========================
+# Extract A/B compartments for each method
+# =========================
+
+# Define method names
+methods <- c("hitc", "hicex")
+
+# Extract indices of A compartments
+compartment_a <- lapply(methods, function(method) which(aligned_data[[method]] == "A"))
+
+# Extract indices of B compartments
+compartment_b <- lapply(methods, function(method) which(aligned_data[[method]] == "B"))
+
+# Assign names to output lists
+names(compartment_a) <- methods
+names(compartment_b) <- methods
+
+```
+
+#' ## 2. Identify A/B compartments using multiple methods
+
+```{r}
+
+# =========================
+# Define compartment sets
+# =========================
+
+# Extract A compartments from different methods
+A <- compartment_a$hitc
+B <- compartment_a$hicex
+
+
+# =========================
+# Calculate overlap statistics
+# =========================
+
+# Define a function to count unique and overlapping regions
+count_region <- function(set1, set2) {
+  list(
+    A_only = length(setdiff(set1, set2)),
+    B_only = length(setdiff(set2, set1)),
+    A_B_only = length(intersect(set1, set2))
+  )
+}
+
+# Compute region counts
+region_counts <- count_region(A, B)
+
+# Print results
+print(region_counts)
+
+
+# =========================
+# Visualize overlap using Euler diagram
+# =========================
+
+print("con 18w compartment A")
+plot(euler(compartment_a),
+     fills = list(fill=c("#008080", "#ffbb44"),
+                  alpha=0.8),
+     quantities = TRUE,
+     legend = list(labels=c("HiTC", "HiCExplorer"),
+                   cex=1.2))
+
+
+
+```
+
+#' ## 3. Compare B compartments between methods and visualize overlap
+
+```{r}
+# =========================
+# Define compartment sets
+# =========================
+
+# Extract B compartments from different methods
+A <- compartment_b$hitc
+B <- compartment_b$hicex
+
+
+# =========================
+# Calculate overlap statistics
+# =========================
+
+# Define a function to count unique and overlapping regions
+count_region <- function(set1, set2) {
+  list(
+    A_only = length(setdiff(set1, set2)),
+    B_only = length(setdiff(set2, set1)),
+    A_B_only = length(intersect(set1, set2))
+  )
+}
+
+# Compute region counts
+region_counts <- count_region(A, B)
+
+# Print results
+print(region_counts)
+
+
+# =========================
+# Visualize overlap using Euler diagram
+# =========================
+
+# Basic Euler plot
+print("con 18w compartment B")
+plot(euler(compartment_b),
+     fills = list(fill=c("#008080", "#ffbb44"),
+                  alpha=0.8),
+     quantities = TRUE,
+     legend = list(labels=c("HiTC", "HiCExplorer"),
+                   cex=1.2))
+```
+

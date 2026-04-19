@@ -1,0 +1,205 @@
+---
+title: "Figure1g"
+author: "MJY"
+date: "2024-09-04"
+output: html_document
+---
+
+Figure 1g
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# 1. Use deeptools to compute signal matrices.
+
+# 2. Use deeptools to generate profile plots for ChIP-seq data at boundaries.
+
+# 
+
+################################################################################ 
+
+\#' \## <br> \#' 1. Use deeptools to compute signal matrices.
+
+```{bash eval=FALSE}
+
+conda create -n deeptools
+conda activate deeptools
+conda install -c bioconda deeptools
+
+cd /public/home/mjy/HCC/share/figure1g
+nohup bash compMat.sh 1>compMat.log 2>&1 &
+
+zcat merged_6w_rep1_matrix.gz | head
+zcat merged_10w_matrix.gz | head
+zcat merged_18w_matrix.gz | head
+
+```
+
+\#' “compMat.sh” contains the following information
+
+```{bash eval=FALSE}
+
+# usage: An example usage is:
+#   computeMatrix reference-point -S <biwig file(s)> -R <bed file> -a 3000 -b 3000
+
+# Define signal track paths for control and CCl4 treatment groups at 6w, 10w, and 18w
+ctrl_6w=/public/home/mjy/HCC/chip/ctcf/macs2/separate/separate/ctrl_6w_1/signalTrack
+ctrl_10w=/public/home/mjy/HCC/chip/bam/ctcf_bam/merge/ctrl_10w/signalTrack
+ctrl_18w=/public/home/mjy/HCC/chip/bam/ctcf_bam/merge/ctrl_18w/signalTrack
+ccl4_6w=/public/home/mjy/HCC/chip/ctcf/macs2/separate/separate/ccl4_6w_1/signalTrack
+ccl4_10w=/public/home/mjy/HCC/chip/bam/ctcf_bam/merge/ccl4_10w/signalTrack
+ccl4_18w=/public/home/mjy/HCC/chip/bam/ctcf_bam/merge/ccl4_18w/signalTrack
+
+# Define output and input paths
+output=/public/home/mjy/HCC/share/figure1g/02_matrix
+input=/public/home/mjy/HCC/share/figure1g/01_loop_bed
+
+mkdir -p ${output}
+
+# Generate matrix for 6w samples
+computeMatrix reference-point  --referencePoint center \
+                               -p 24 \
+                               -bs 25000 \
+                               --skipZeros \
+                               -a 500000 -b 500000 \
+                               -R ${input}/total_merged.boundaries.bed \
+                               -S ${ctrl_6w}/ctrl_6w_1_FE.sorted.bw ${ccl4_6w}/ccl4_6w_1_FE.sorted.bw  \
+                               -o ${output}/merged_6w_rep1_matrix.gz 
+
+wait
+echo "merge_6w finish"
+
+# Generate matrix for 10w samples
+computeMatrix reference-point  --referencePoint center \
+                               -p 24 \
+                               -bs 25000 \
+                               --skipZeros \
+                               -a 500000 -b 500000 \
+                               -R ${input}/total_merged.boundaries.bed \
+                               -S ${ctrl_10w}/ctrl_10w_FE.sorted.bw ${ccl4_10w}/ccl4_10w_FE.sorted.bw  \
+                               -o ${output}/merged_10w_matrix.gz 
+
+wait
+echo "merge_10w finish"
+
+# Generate matrix for 18w samples
+computeMatrix reference-point  --referencePoint center \
+                               -p 24 \
+                               -bs 25000 \
+                               --skipZeros \
+                               -a 500000 -b 500000 \
+                               -R ${input}/total_merged.boundaries.bed \
+                               -S ${ctrl_18w}/ctrl_18w_FE.sorted.bw ${ccl4_18w}/ccl4_18w_FE.sorted.bw  \
+                               -o ${output}/merged_18w_matrix.gz 
+
+wait
+echo "merge_18w finish"
+
+```
+
+merged_6w_rep1_matrix.gz
+
+![](images/merged_6w_rep1_matrix.png)
+
+merged_10w_matrix.gz
+
+![](images/merged_10w_matrix.png)
+
+merged_18w_matrix.gz
+
+![](images/merged_18w_matrix.png)
+
+\#' \## <br> \#' 2. Use deeptools to generates profile plots for ChIP-seq data at boundaries.
+
+```{bash eval=FALSE}
+
+cd /public/home/mjy/HCC/share/figure1g
+nohup bash process.sh 1>process.log 2>&1 &
+
+```
+
+\#' “process.sh” contains the following information.
+
+```{bash eval=FALSE}
+
+# usage: plotProfile -m matrix.gz
+
+# Define input matrix and output directory
+input=/public/home/mjy/HCC/share/figure1g/02_matrix
+output=/public/home/mjy/HCC/share/figure1g/03_profile
+
+mkdir -p ${output}
+
+# Generate profile plot for 6w samples
+plotProfile -m ${input}/merged_6w_rep1_matrix.gz  \
+		  --outFileName ${output}/boundary_6w.png \
+		  --yMin 0.55 \
+		  --yMax 0.75  \
+		  --plotHeight 8 \
+		  --plotWidth 8 \
+		  --colors "#00BFC4" "#F8766D" \
+		  --perGroup  \
+		  --startLabel "" \
+		  --endLabel "" \
+		  --samplesLabel "ctrl_6w" "ccl4_6w"  \
+		  --plotTitle "" \
+		  --refPointLabel "boundary" \
+		  -T "6w_boundary_rep1" 
+
+wait
+echo "6w_boundary finish!"
+
+# Generate profile plot for 10w samples
+plotProfile -m ${input}/merged_10w_matrix.gz \
+            --outFileName ${output}/boundary_10w.png \
+            --yMin 0.55 \
+            --yMax 0.75  \
+            --plotHeight 8 \
+            --plotWidth 8 \
+            --colors "#00BFC4" "#F8766D" \
+            --perGroup  \
+            --startLabel "" \
+            --endLabel "" \
+            --samplesLabel  "Con_10w" "Cir_10w"    \
+            --plotTitle "" \
+            --refPointLabel "boundary" \
+            -T "10w_boundary" 
+
+wait
+echo "10w_boundary finish!"
+
+# Generate profile plot for 18w samples
+plotProfile -m ${input}/merged_18w_matrix.gz \
+            --outFileName ${output}/boundary_18w.png \
+            --yMin 0.55 \
+            --yMax 0.75  \
+            --plotHeight 8 \
+            --plotWidth 8 \
+            --colors "#00BFC4" "#F8766D" \
+            --perGroup  \
+            --startLabel "" \
+            --endLabel "" \
+            --samplesLabel  "Con_18w" "HCC_18w"    \
+            --plotTitle "" \
+            --refPointLabel "boundary" \
+            -T "18w_boundary" 
+wait
+echo "18w_boundary finish!"
+
+
+```
+
+6w_boundary_rep1
+
+![](images/boundary_6w.png){width="384"}
+
+10w_boundary
+
+![](images/boundary_10w.png){width="384"}
+
+18w_boundary
+
+![](images/boundary_18w.png){width="384"}

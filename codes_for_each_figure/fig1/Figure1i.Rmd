@@ -1,0 +1,166 @@
+---
+title: "Figure-1i"
+author: "MJY"
+date: "2024-09-03"
+output: html_document
+---
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# Generates Hi-C interaction heatmaps for control and treated samples, as well as a difference plot.
+
+# 
+
+################################################################################ 
+
+```{r}
+
+suppressPackageStartupMessages(library(GENOVA))
+suppressPackageStartupMessages(library(ggplot2))
+
+setwd("F:/share/data/hic_matrix/")
+knitr::opts_knit$set(root.dir = 'F:/share/data/hic_matrix/')
+
+
+```
+
+```{r}
+
+# Load the contact data for the control and the treated sample
+con_6w <- load_contacts(
+  signal_path = './con_6w/iced/40000/con_6w_40000_iced.matrix',
+  indices_path= './con_6w/raw/40000/con_6w_40000_abs.bed')
+con_6w
+
+ccl4_6w <- load_contacts(
+  signal_path = './ccl4_6w/iced/40000/ccl4_6w_40000_iced.matrix',
+  indices_path = './ccl4_6w/raw/40000/ccl4_6w_40000_abs.bed')
+ccl4_6w
+
+# Generate a pyramid plot for the control and the treated sample
+con_6w_pyramid <- pyramid(con_6w,
+                          chr = "chr1", 
+                          start = 10e6, 
+                          end = 16e6,
+                          crop_y = c(0, 1.5e6),
+                          colour = c(0, 500)) + ggplot2::ggtitle("Con_6w")
+con_6w_pyramid
+
+ccl4_6w_pyramid <- pyramid(ccl4_6w,
+                           chr = "chr1", 
+                           start = 10e6, 
+                           end = 16e6,
+                           crop_y = c(0, 1.5e6),
+                           colour = c(0, 500)) + ggplot2::ggtitle("Fib_6w")
+ccl4_6w_pyramid
+
+# Generate a pyramid difference plot (ccl4_6w - con_6w)
+difference_6w_pyramid <- pyramid_difference(ccl4_6w,
+                                            con_6w,
+                                            chr = "chr1", 
+                                            start = 10e6, 
+                                            end = 16e6,
+                                            crop_y = c(0, 1.5e6),
+                                            colour = c(-80, 20)) + ggplot2::ggtitle("Dif_6w")
+difference_6w_pyramid
+
+ggsave("F:/share/results/figure1e/con_6w.png", plot = con_6w_pyramid, width = 10, height = 2, dpi = 300)
+ggsave("F:/share/results/figure1e/ccl4_6w.png", plot = ccl4_6w_pyramid, width = 10, height = 2, dpi = 300)
+ggsave("F:/share/results/figure1e/Dif_6w.png", plot = difference_6w_pyramid, width = 10, height = 2, dpi = 300)
+```
+
+```{r}
+
+# Load the contact data for the control and the treated sample
+con_10w <- load_contacts(
+  signal_path = './con_10w/iced/40000/con_10w_40000_iced.matrix',
+  indices_path= './con_10w/raw/40000/con_10w_40000_abs.bed')
+con_10w
+
+ccl4_10w <- load_contacts(
+  signal_path = './ccl4_10w/iced/40000/ccl4_10w_40000_iced.matrix',
+  indices_path = './ccl4_10w/raw/40000/ccl4_10w_40000_abs.bed')
+ccl4_10w
+
+# Generate a pyramid plot for the control and the treated sample
+con_10w_pyramid <- pyramid(con_10w,
+                          chr = "chr1", 
+                          start = 10e6, 
+                          end = 16e6,
+                          crop_y = c(0, 1.5e6),
+                          colour = c(0, 500)) + ggplot2::ggtitle("Con_10w")
+con_10w_pyramid
+
+ccl4_10w_pyramid <- pyramid(ccl4_10w,
+                           chr = "chr1", 
+                           start = 10e6, 
+                           end = 16e6,
+                           crop_y = c(0, 1.5e6),
+                           colour = c(0, 500)) + ggplot2::ggtitle("Fib_10w")
+ccl4_10w_pyramid
+
+# Generate a pyramid difference plot (ccl4_6w - con_6w)
+difference_10w_pyramid <- pyramid_difference(ccl4_10w,
+                                            con_10w,
+                                            chr = "chr1", 
+                                            start = 10e6, 
+                                            end = 16e6,
+                                            crop_y = c(0, 1.5e6),
+                                            colour = c(-80, 20)) + ggplot2::ggtitle("Dif_10w")
+difference_10w_pyramid
+
+ggsave("F:/share/results/figure1e/con_10w.png", plot = con_10w_pyramid, width = 10, height = 2, dpi = 300)
+ggsave("F:/share/results/figure1e/ccl4_10w.png", plot = ccl4_10w_pyramid, width = 10, height = 2, dpi = 300)
+ggsave("F:/share/results/figure1e/Dif_10w.png", plot = difference_10w_pyramid, width = 10, height = 2, dpi = 300)
+
+```
+
+```{r}
+
+# Load the contact data for the control and the treated sample
+con_18w <- load_contacts(
+  signal_path = './con_18w/iced/40000/con_18w_40000_iced.matrix',
+  indices_path= './con_18w/raw/40000/con_18w_40000_abs.bed')
+con_18w
+
+ccl4_18w <- load_contacts(
+  signal_path = './ccl4_18w/iced/40000/ccl4_18w_40000_iced.matrix',
+  indices_path = './ccl4_18w/raw/40000/ccl4_18w_40000_abs.bed')
+ccl4_18w
+
+# Generate a pyramid plot for the control and the treated sample
+con_18w_pyramid <- pyramid(con_18w,
+                          chr = "chr1", 
+                          start = 10e6, 
+                          end = 16e6,
+                          crop_y = c(0, 1.5e6),
+                          colour = c(0, 500)) + ggplot2::ggtitle("Con_18w")
+con_18w_pyramid
+
+ccl4_18w_pyramid <- pyramid(ccl4_18w,
+                           chr = "chr1", 
+                           start = 10e6, 
+                           end = 16e6,
+                           crop_y = c(0, 1.5e6),
+                           colour = c(0, 500)) + ggplot2::ggtitle("Fib_18w")
+ccl4_18w_pyramid
+
+# Generate a pyramid difference plot (ccl4_6w - con_6w)
+difference_18w_pyramid <- pyramid_difference(ccl4_18w,
+                                            con_18w,
+                                            chr = "chr1", 
+                                            start = 10e6, 
+                                            end = 16e6,
+                                            crop_y = c(0, 1.5e6),
+                                            colour = c(-80, 20)) + ggplot2::ggtitle("Dif_18w")
+difference_18w_pyramid
+
+ggsave("F:/share/results/figure1e/con_18w.png", plot = con_18w_pyramid, width = 10, height = 2, dpi = 300)
+ggsave("F:/share/results/figure1e/ccl4_18w.png", plot = ccl4_18w_pyramid, width = 10, height = 2, dpi = 300)
+ggsave("F:/share/results/figure1e/Dif_18w.png", plot = difference_18w_pyramid, width = 10, height = 2, dpi = 300)
+
+```

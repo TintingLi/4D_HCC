@@ -1,0 +1,223 @@
+---
+title: "method of compartment"
+author: "MJY"
+date: "2026-04-17"
+output: html_document
+---
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# Analyze compartment switching and visualize proportions
+
+# 
+
+################################################################################ 
+
+```{r}
+suppressPackageStartupMessages(library(readr))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(purrr))
+suppressPackageStartupMessages(library(pheatmap))
+suppressPackageStartupMessages(library("readxl"))
+suppressPackageStartupMessages(library(data.table))
+
+# =========================
+# Set input directory
+# =========================
+input_dir <- "F:/share/results/compartment/bedgraph"
+
+# List all PCA bedgraph files
+file_list <- list.files(input_dir, pattern = "_pca.bedgraph$", full.names = TRUE)
+
+# =========================
+# Load bin file (reference regions)
+# =========================
+bin_file <- "F:/share/results/compartment/bedgraph/bin_200000_PC1.xlsx"
+bins <- read_excel(bin_file)
+
+# Create unique region ID (chr:start-end)
+bins$region_id <- apply(bins, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+
+# =========================
+# Load and align PC1 scores across samples
+# =========================
+score_data <- list()
+
+for (file in file_list) {
+  # Read bedgraph file
+  data <- fread(file, header = TRUE, stringsAsFactors = FALSE)
+  
+  # Create region ID
+  data$region_id <- apply(data, 1, function(x) paste(x[1], x[2], x[3], sep = ":"))
+  
+  # Align with reference bins
+  aligned_data <- merge(bins, data, by = "region_id", all.x = TRUE)
+  
+  # Keep NA values
+  aligned_data$score[is.na(aligned_data$score)] <- NA
+  
+  # Store score vector
+  score_data[[basename(file)]] <- aligned_data$score
+}
+
+# Combine all scores into a matrix
+score_matrix <- do.call(cbind, score_data)
+colnames(score_matrix) <- names(score_data)
+rownames(score_matrix) <- aligned_data$region_id
+
+# Remove rows with NA
+score_matrix <- score_matrix[complete.cases(score_matrix), ]
+
+# =========================
+# Identify compartment switching regions
+# =========================
+combinations <- list(
+  c("con_6w_pca.bedgraph", "ccl4_6w_pca.bedgraph"),
+  c("con_10w_pca.bedgraph", "ccl4_10w_pca.bedgraph"),
+  c("con_18w_pca.bedgraph", "ccl4_18w_pca.bedgraph")
+)
+
+selected_rows <- rep(FALSE, nrow(score_matrix))
+
+for (pair in combinations) {
+  col1 <- which(colnames(score_matrix) == pair[1])
+  col2 <- which(colnames(score_matrix) == pair[2])
+  
+  # Define switching as sign change in PC1
+  condition <- (score_matrix[, col1] > 0 & score_matrix[, col2] < 0) | 
+               (score_matrix[, col1] < 0 & score_matrix[, col2] > 0)
+  
+  selected_rows <- selected_rows | condition
+}
+
+# Extract switching regions
+score_matrix_select <- score_matrix[selected_rows, ]
+score_matrix_select <- score_matrix_select[,c(6,3,4,1,5,2)]
+
+# Filter chrX regions
+filtered_data <- score_matrix_select[grep("^chrX:", rownames(score_matrix_select)), ]
+filtered_data <- filtered_data[,c(6,3,4,1,5,2)]
+
+# =========================
+# Classify A/B compartments
+# =========================
+classify_compartment <- function(value) {
+  if (!is.na(value)) {
+    if (value > 0) {
+      return("A")
+    } else {
+      return("B")
+    }
+  } else {
+    return(NA)
+  }
+}
+
+score_matrix_df <- data.frame(score_matrix)
+
+score_matrix_AB_df <- as.data.frame(
+  lapply(score_matrix_df, function(x) sapply(x, classify_compartment))
+)
+
+# =========================
+# Define transition categories (AA, BB, AB, BA)
+# =========================
+classify_pair <- function(col1, col2) {
+  if (col1 == "A" & col2 == "A") return("AA")
+  else if (col1 == "B" & col2 == "B") return("BB")
+  else if (col1 == "A" & col2 == "B") return("AB")
+  else if (col1 == "B" & col2 == "A") return("BA")
+  else return("NA")
+}
+
+comparison_pairs <- list(
+  c("con_6w_pca.bedgraph", "ccl4_6w_pca.bedgraph"),
+  c("con_10w_pca.bedgraph", "ccl4_10w_pca.bedgraph"),
+  c("con_18w_pca.bedgraph", "ccl4_18w_pca.bedgraph")
+)
+
+for (pair in comparison_pairs) {
+  col1 <- pair[1]
+  col2 <- pair[2]
+  
+  # Apply pair classification
+  score_matrix_AB_df[[paste0(col1, "_", col2)]] <- mapply(
+    classify_pair,
+    score_matrix_AB_df[[col1]],
+    score_matrix_AB_df[[col2]]
+  )
+}
+
+# Remove suffix from column names
+score_matrix_AB_df <- rename_with(score_matrix_AB_df, 
+                                  ~ gsub("_pca.bedgraph", "", .x), 
+                                  contains("_pca.bedgraph"))
+
+score_matrix_AB_df <- score_matrix_AB_df[,7:9]
+
+# =========================
+# Calculate proportions
+# =========================
+proportions <- lapply(score_matrix_AB_df, function(col) {
+  counts <- table(col, useNA = "no")
+  proportions <- counts / sum(counts)
+  return(proportions)
+})
+
+proportions_df <- do.call(rbind, proportions)
+rownames(proportions_df) <- colnames(score_matrix_AB_df)
+
+# =========================
+# Convert to long format
+# =========================
+library(ggplot2)
+library(tidyr)
+
+proportions_df <- as.data.frame(proportions_df)
+proportions_df <- proportions_df[,c(1,3,2,4)]
+
+score_matrix_combinations_long <- proportions_df %>%
+  mutate(Combination = rownames(.)) %>%
+  pivot_longer(cols = -Combination, names_to = "Category", values_to = "Proportion") %>%
+  group_by(Combination) %>%
+  mutate(percentage = Proportion / sum(Proportion) * 100)
+
+# Add prefix to labels
+score_matrix_combinations_long$Combination <- paste0("HiTC_", score_matrix_combinations_long$Combination)
+
+score_matrix_combinations_long
+
+# =========================
+# Set factor order
+# =========================
+score_matrix_combinations_long$Category <- factor(
+  score_matrix_combinations_long$Category, 
+  levels=c('AA', 'BA', 'AB','BB')
+)
+
+# =========================
+# Plot stacked bar (with labels)
+# =========================
+
+ggplot(score_matrix_combinations_long, aes(x = Combination, y = percentage, fill = Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")),
+            position = position_stack(vjust = 0.5)) + 
+  labs(y = "percentage") +
+  scale_x_discrete(limits = c("HiTC_con_6w_ccl4_6w", "HiTC_con_10w_ccl4_10w", "HiTC_con_18w_ccl4_18w")) +
+  scale_fill_manual(values = c("AA" = "#F67F7F", "BA" = "#EA3E3E", "AB" = "#6170B9", "BB" = "#9DA3C8")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(vjust=1, size=15, face = "bold", angle = 45, hjust = 1),
+    panel.grid = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank()
+  )
+
+
+```
+

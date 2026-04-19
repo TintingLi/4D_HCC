@@ -1,0 +1,273 @@
+---
+title: "figure3gh"
+author: "MJY"
+date: "2024-09-04"
+output: html_document
+---
+
+Figure 3gh
+
+################################################################################
+#
+# OUTLINES:
+#   1. Using HiTC to call compartment.
+#   2. Using Genova to draw saddle-plot.
+#
+################################################################################
+
+
+#' ## 1. Using HiTC to call compartment.
+#' 
+
+```{r,message=FALSE, warning=FALSE}
+
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(TxDb.Mmusculus.UCSC.mm10.knownGene))
+suppressPackageStartupMessages(library(HiTC))
+suppressPackageStartupMessages(library(dplyr))
+
+setwd("F:/share/data/hic_matrix/")
+knitr::opts_knit$set(root.dir = 'F:/share/data/hic_matrix/')
+
+
+```
+
+
+```{r,message=FALSE, warning=FALSE}
+
+# Gets the absolute path to all.matrix files containing "250000"
+
+matrix_folder <- "F:/share/data/hic_matrix"
+time_points <- c("6w", "10w", "18w")  
+selected_time <- "18w"
+matrix_files <- list.files(matrix_folder, pattern = paste0(selected_time, "_250000_iced\\.matrix$"), 
+                           full.names = TRUE, recursive = TRUE)
+
+# Create a function that processes the file path to find the corresponding ".bed" file
+get_bed_file <- function(matrix_file) {
+  bed_file <- sub("/iced/", "/raw/", matrix_file)
+  bed_file <- sub("_iced\\.matrix$", "_abs.bed", bed_file)
+  return(bed_file)
+}
+
+matrix_files[]
+get_bed_file(matrix_files[])
+
+## provide gene density information
+  txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+  hg_genes <- genes(txdb)
+
+# Defines the function used to compute the first principal component
+process_sample <- function(matrix_file, bed_file) {
+  hic <- importC(matrix_file, xgi.bed = bed_file)
+  
+  ## pre-generated HiT vector, include ICE normalized matrix
+  intra <- hic[isIntraChrom(hic)]
+  intra <- intra[1:21]  
+  
+  ## only consider intra-chromosome interactions(cis)
+  pca <- parallel::mclapply(intra, function(x) {
+    pc <- pca.hic(x, normPerExpected = TRUE, npc = 1, gene.gr = hg_genes)
+    return(pc)
+  })
+  
+  ## Filter out NULL in the list
+  filtered_pca <- pca[!sapply(pca, is.null)]
+  
+  ## do PCA analysis for alustering into two groups
+  compartments <- data.frame(
+    group = character(), 
+    group_name = character(), 
+    seqnames = character(),
+    start = integer(), 
+    end = integer(), 
+    width = integer(),
+    strand = character(), 
+    score = double(), 
+    gedens = integer(),
+    compartments = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  for (i in names(filtered_pca)) {
+    tb <- data.frame(filtered_pca[[i]]) 
+    tb <- tb[tb[,1] == "1",]
+    colnames(tb) <- colnames(compartments)
+    compartments <- rbind(compartments, tb)
+  }
+  
+
+    
+  # Extracts the file name portion of the file name
+  file_base <- gsub("_iced\\.matrix$", "", basename(matrix_file))
+
+
+  print(paste0("compartments_", file_base))
+  glimpse(compartments)
+  
+  # Generate output file
+  output_path <- file.path("F:/share/results/figure3gh", paste0(file_base, "_PC1.txt"))
+  write.table(compartments, file = output_path, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+
+}
+  
+# Process all samples
+for (matrix_file in matrix_files) {
+  bed_file <- get_bed_file(matrix_file)
+  if (file.exists(bed_file)) {
+    process_sample(matrix_file, bed_file)
+  } else {
+    message("Bed file not found for: ", matrix_file)
+  }
+}
+
+```
+
+#' ## 2. Using Genova to draw saddle-plot.
+#' 
+
+```{r,message=FALSE, warning=FALSE}
+suppressPackageStartupMessages(library(GENOVA))
+suppressPackageStartupMessages(library(ggplot2))
+
+setwd("F:/share/results/figure3gh/")
+knitr::opts_knit$set(root.dir = 'F:/share/results/figure3gh/')
+```
+
+
+```{r,message=FALSE, warning=FALSE}
+
+time_points <- c("18w")
+
+for (time in time_points) {
+  # Read compartment data
+  compartment_con <- read.delim(paste0('F:/share/results/figure3gh/con_', time, '_250000_PC1.txt'), header = TRUE)
+  compartment_ccl4 <- read.delim(paste0('F:/share/results/figure3gh/ccl4_', time, '_250000_PC1.txt'), header = TRUE)
+
+  # Converts the row name to a bin column and to a number type
+  compartment_con$bin <- as.numeric(rownames(compartment_con))
+  compartment_ccl4$bin <- as.numeric(rownames(compartment_ccl4))
+
+  # Initialize the merged data frame
+  merged_data <- data.frame(
+    chrom = compartment_con$seqnames,
+    start = compartment_con$start,
+    end = compartment_con$end,
+    bin = 1:nrow(compartment_con),
+    con = NA,
+    ccl4 = NA
+  )
+
+  # Populate data
+  for (i in 1:nrow(compartment_con)) {
+    bin_index <- which(merged_data$bin == compartment_con$bin[i])
+    if (length(bin_index) > 0) {
+      merged_data$con[bin_index] <- compartment_con$score[i]
+    }
+  }
+
+  for (i in 1:nrow(compartment_ccl4)) {
+    bin_index <- which(merged_data$bin == compartment_ccl4$bin[i])
+    if (length(bin_index) > 0) {
+      merged_data$ccl4[bin_index] <- compartment_ccl4$score[i]
+    }
+  }
+
+  merged_data$start <- as.integer(merged_data$start) - 1
+
+  new_row <- data.frame(
+    chrom = "chrM",
+    start = 0,
+    end = 16299,
+    bin = 5463,
+    con = NA,
+    ccl4 = NA
+  )
+
+  merged_data <- rbind(merged_data, new_row)
+  
+ # Rename columns to include time points 
+  colnames(merged_data)[which(colnames(merged_data) == "con")] <- paste0("con_", time)
+  colnames(merged_data)[which(colnames(merged_data) == "ccl4")] <- paste0("ccl4_", time)
+  
+  print(paste0("merged_data_", time))
+  glimpse(merged_data)
+  
+  # Read H3K27ac peaks data
+  H3K27acPeaks_con <- read.delim(paste0('F:/share/data/figure3gh_H3K27ac_narrowPeak/ctrl_', time, '_peaks.narrowPeak'), header = FALSE)
+  H3K27acPeaks_ccl4 <- read.delim(paste0('F:/share/data/figure3gh_H3K27ac_narrowPeak/ccl4_', time, '_peaks.narrowPeak'), header = FALSE)
+
+  # Calculating compartment scores
+  contact_con <- load_contacts(
+    signal_path = paste0('F:/share/data/hic_matrix/con_', time, '/iced/250000/con_', time, '_250000_iced.matrix'),
+    indices_path = paste0('F:/share/data/hic_matrix/con_', time, '/raw/250000/con_', time, '_250000_abs.bed'),
+    sample_name = paste0('con_', time),
+    colour = "black"
+  )
+  
+  print(paste0("contact_con_", time))
+  print(contact_con)
+  
+  contact_ccl4 <- load_contacts(
+    signal_path = paste0('F:/share/data/hic_matrix/ccl4_', time, '/iced/250000/ccl4_', time, '_250000_iced.matrix'),
+    indices_path = paste0('F:/share/data/hic_matrix/ccl4_', time, '/raw/250000/ccl4_', time, '_250000_abs.bed'),
+    sample_name = paste0('ccl4_', time),
+    colour = "black"
+)
+  
+  print(paste0("contact_ccl4_", time))
+  print(contact_ccl4)
+
+  CS_out <- compartment_score(list(contact_con, contact_ccl4),
+                               bed = H3K27acPeaks_con)
+
+  print(paste0("CS_out_", time))
+  print(CS_out)
+  
+  # Create a list that contains data boxes
+  merged_data_out <- list(compart_scores = merged_data)
+
+  # Set classes and properties
+  class(merged_data_out) <- class(CS_out)
+  attributes(merged_data_out)$colours <- attributes(CS_out)$colours
+  attributes(merged_data_out)$package <- attributes(CS_out)$package
+  attributes(merged_data_out)$resolution <- attributes(CS_out)$resolution
+  attributes(merged_data_out)$partitioning <- attributes(CS_out)$partitioning
+  attributes(merged_data_out)$signed <- attributes(CS_out)$signed
+
+  # Check the structure of the new object
+  str(merged_data_out)
+
+  # Saddle-analyses
+  saddle_out <- saddle(list(contact_con, contact_ccl4),
+                      CS_discovery = merged_data_out,
+                      bins = 9.1)
+
+  saddle_plot <- visualise(saddle_out,
+            colour_lim = c(0, 2),
+            colour_lim_contrast = c(-0.2, 0.2),
+            show_single_contrast = FALSE)
+  
+ 
+  print(paste0("saddle_plot_con_vs_ccl4_", time))
+  print(saddle_plot)
+
+ ggsave(paste0("F:/share/results/figure3gh/pca_250k_compartment_", time, ".png"), plot =saddle_plot, width = 8, height = 6, dpi = 300)
+ 
+  # Saddle-analyses-chrX
+
+  saddle_plot <- visualise(saddle_out,
+            chr = "chrX",
+            colour_lim = c(0, 2),
+            colour_lim_contrast = c(-0.2, 0.2),
+            show_single_contrast = FALSE)
+  
+ 
+  print(paste0("saddle_plot_chrX_con_vs_ccl4_", time))
+  print(saddle_plot)
+
+ ggsave(paste0("F:/share/results/figure3gh/pca_chrX_250k_compartment_", time, ".png"), plot =saddle_plot, width = 8, height = 6, dpi = 300)
+}
+
+```
+

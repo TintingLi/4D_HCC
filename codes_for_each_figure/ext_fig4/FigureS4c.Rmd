@@ -1,0 +1,172 @@
+---
+title: "Method of compartment"
+author: "MJY"
+date: "2026-04-17"
+output: html_document
+---
+
+################################################################################ 
+
+# 
+
+# OUTLINES:
+
+# isualize A/B compartments using pyGenomeTracks
+
+# 
+
+################################################################################ 
+
+# 
+
+```{bash eval=FALSE}
+
+# =========================
+# Define genomic regions to plot
+# =========================
+region=( "chr3:0-160039680" "chrX:0-171031299")
+
+# =========================
+# Create output directory
+# =========================
+mkdir -p /public/home/mjy/HCC/compartment/pygenometracks/hicexplorer_iced
+
+# =========================
+# Loop through regions and generate plots
+# =========================
+for i in ${region[@]} ; do
+
+# Run pyGenomeTracks to plot compartment signals
+pyGenomeTracks --tracks /public/home/mjy/HCC/compartment/pygenometracks/log/hicexplorer_iced_config.ini \
+               --region $i \
+               -o /public/home/mjy/HCC/compartment/pygenometracks/hicexplorer_iced/hicexplorer_iced_${i}.png
+
+# Print progress
+echo "$i finish"
+date
+
+done
+
+
+```
+
+# Configuration file (INI)
+
+```{bash eval=FALSE}
+
+[x-axis]
+where = top
+#color = #0000FF
+#color = #DE8BF9
+#color = #0F99B2
+
+# =========================
+# Control 6w
+# =========================
+[test bedgraph]
+file =/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/con_6w_hicexplorer_final_A.bedgraph
+height = 1
+color=#EF8521
+title = con_6w
+min_value=0
+max_value=0.05
+
+[test bedgraph]
+file=/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/con_6w_hicexplorer_final_B.bedgraph
+height=1
+color=#3F7DB8
+min_value=-0.05
+max_value=0
+
+# =========================
+# Control 10w
+# =========================
+[test bedgraph]
+file =/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/con_10w_hicexplorer_final_A.bedgraph
+height = 1
+color=#EF8521
+title = con_10w
+min_value=0
+max_value=0.05
+
+[test bedgraph]
+file=/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/con_10w_hicexplorer_final_B.bedgraph
+height=1
+color=#3F7DB8
+min_value=-0.05
+max_value=0
+
+# =========================
+# Control 18w
+# =========================
+[test bedgraph]
+file =/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/con_18w_hicexplorer_final_A.bedgraph
+height = 1
+color=#EF8521
+title = con_18w
+min_value=0
+max_value=0.05
+
+[test bedgraph]
+file=/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/con_18w_hicexplorer_final_B.bedgraph
+height=1
+color=#3F7DB8
+min_value=-0.05
+max_value=0
+
+# =========================
+# CCl4 6w
+# =========================
+[test bedgraph]
+file =/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/ccl4_6w_hicexplorer_final_A.bedgraph
+height = 1
+color=#EF8521
+title = ccl4_6w
+min_value=0
+max_value=0.05
+
+[test bedgraph]
+file=/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/ccl4_6w_hicexplorer_final_B.bedgraph
+height=1
+color=#3F7DB8
+min_value=-0.05
+max_value=0
+
+# =========================
+# CCl4 10w
+# =========================
+[test bedgraph]
+file =/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/ccl4_10w_hicexplorer_final_A.bedgraph
+height = 1
+color=#EF8521
+title = ccl4_10w
+min_value=0
+max_value=0.05
+
+[test bedgraph]
+file=/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/ccl4_10w_hicexplorer_final_B.bedgraph
+height=1
+color=#3F7DB8
+min_value=-0.05
+max_value=0
+
+# =========================
+# CCl4 18w
+# =========================
+[test bedgraph]
+file =/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/ccl4_18w_hicexplorer_final_A.bedgraph
+height = 1
+color=#EF8521
+title = ccl4_18w
+min_value=0
+max_value=0.05
+
+[test bedgraph]
+file=/public/home/mjy/HCC/compartment/hicexplorer/04.final_bed_raw/ccl4_18w_hicexplorer_final_B.bedgraph
+height=1
+color=#3F7DB8
+min_value=-0.05
+max_value=0
+
+
+```
